@@ -88,7 +88,7 @@ Adds or updates the package for the given repo
 my $is_new = 1; # Bool, true if repo is new and empty
 my $version = 'v19.05';
 my $shortname = 'bywater'; # or 'clic', 'masscat', etc
-my $deb_file = '/path/to/koha-common.db';
+my $deb_file = '/path/to/koha-common.deb';
 my $created = add_or_update_package( $version, $shortname, $deb_file );
 
 Returns true of the repo was created, false if the repo already exists.
