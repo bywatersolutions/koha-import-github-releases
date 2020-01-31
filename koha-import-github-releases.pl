@@ -91,8 +91,6 @@ my $shortname = 'bywater'; # or 'clic', 'masscat', etc
 my $deb_file = '/path/to/koha-common.deb';
 my $created = add_or_update_package( $version, $shortname, $deb_file );
 
-Returns true of the repo was created, false if the repo already exists.
-
 =cut
 
 sub add_or_update_package {
