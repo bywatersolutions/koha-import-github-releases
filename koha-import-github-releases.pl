@@ -38,11 +38,11 @@ foreach my $d (@$data) {
     say "$tag_name:" if $opt->verbose;
     my ( $shortname, $version, $mark ) = split( /-/, $tag_name );
     say "  Shortnamme: $shortname" if $opt->verbose > 1;
-    say "  Version: $version"      if $opt->verbose > 1;
-    say "  Mark: $mark"            if $opt->verbose > 1;
+    say "  Version: $version" if $opt->verbose > 1;
+    say "  Mark: $mark" if $opt->verbose > 1;
 
     my ( $major, $minor, $patch ) = split( /\./, $version );
-    $major =~ s/^.//;    # Remove leading 'v'
+    $major =~ s/^.//; # Remove leading 'v'
     say "    Major Version: $major" if $opt->verbose > 2;
     say "    Minor Version: $minor" if $opt->verbose > 2;
     say "    Patch Version: $patch" if $opt->verbose > 2;
@@ -50,6 +50,7 @@ foreach my $d (@$data) {
     my $asset                = $d->{assets}->[0];
     my $name                 = $asset->{name};
     my $browser_download_url = $asset->{browser_download_url};
+
     say "  Tag: $tag_name"                   if $opt->verbose;
     say "  Asset Name: $name"                if $opt->verbose;
     say "  Asset URL: $browser_download_url" if $opt->verbose;
@@ -71,7 +72,7 @@ foreach my $d (@$data) {
     if ($ok) {    # Import the file into aptly
         my $major_minor = "$major.$minor";
         my $is_new = create_repo( $major_minor, $shortname, $opt->verbose );
-        my $deb_file = "$data_dir/koha-common_$major.$minor.$patch~$shortname~$mark-1_all.deb";
+	my $deb_file = "$data_dir/koha-common_$major.$minor.$patch~$shortname~$mark-1_all.deb";
         add_or_update_package( $is_new, $major_minor, $shortname, $deb_file, $opt->verbose );
     }
 
@@ -88,8 +89,10 @@ Adds or updates the package for the given repo
 my $is_new = 1; # Bool, true if repo is new and empty
 my $version = 'v19.05';
 my $shortname = 'bywater'; # or 'clic', 'masscat', etc
-my $deb_file = '/path/to/koha-common.deb';
+my $deb_file = '/path/to/koha-common.db';
 my $created = add_or_update_package( $version, $shortname, $deb_file );
+
+Returns true of the repo was created, false if the repo already exists.
 
 =cut
 
@@ -103,18 +106,18 @@ sub add_or_update_package {
     @output = qx( aptly repo add $version-$shortname $deb_file );
     if ( $verbose > 3 ) {say for ( "Adding file $deb_file to $version-$shortname: ", @output ); }
 
-    @output = qx( aptly publish repo -distribution=$version -component=$shortname $version-$shortname ) if $is_new;
+    @output = qx( aptly publish repo -distribution=$version-$shortname -component=main $version-$shortname ) if $is_new;
     if ( $verbose > 3 && $is_new ) { say for ( "Publishing $version-$shortname: ", @output ); }
-    @output = qx( aptly publish update $version );
-    if ( $verbose > 3 ) { say for ( "Updating $version: ", @output ); }
+    @output = qx( aptly publish update $version-$shortname );	
+    if ( $verbose > 3 ) { say for ( "Updating $version-$shortname: ", @output ); }
 }
 
 =head2 create_repo
 
 Creates the given repo if necessary.
 The repo name will be a combination $version-$shorname
-The distribution will be $version
-The component will be $shortname
+The distribution will be $version-$shortname
+The component will be main
 
 my $version = 'v19.05';
 my $shortname = 'bywater'; # or 'clic', 'masscat', etc
@@ -132,7 +135,7 @@ sub create_repo {
     if ( @output ) {
         return 0; # Repo exists
     } else {
-	@output = qx( aptly repo create -distribution=$version -component=$shortname $version-$shortname );
+	@output = qx( aptly repo create -distribution=$version-$shortname -component=main $version-$shortname );
     	if ( $verbose > 3 ) { say for ( "Creating new repo $version-$shortname: ", @output ); }
         return 1; # Repo was newly created
     }
