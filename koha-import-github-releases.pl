@@ -14,7 +14,10 @@ use LWP::UserAgent;
 my ( $opt, $usage ) = describe_options(
     'koha-import-github-releases %o ',
     [ 'path|p=s', "The path to download assets to", { required => 1 } ],
-    [ 'date|d=s', "The date ( in ISO format ) to limit downloading releases to. Defaults to current date." ],
+    [
+        'date|d=s',
+"The date ( in ISO format ) to limit downloading releases to. Defaults to current date."
+    ],
     [],
     [ 'verbose|v+', "print extra stuff" ],
     [ 'help|h', "print usage message and exit", { shortcircuit => 1 } ],
@@ -26,60 +29,65 @@ $ua->show_progress( $opt->verbose ? 1 : 0 );
 my $date = $opt->date || DateTime->now->ymd;
 say "Using Date: $date\n" if $opt->verbose;
 
-my $url = 'https://api.github.com/repos/bywatersolutions/bywater-koha/releases';
+my @urls = (
+    'https://api.github.com/repos/bywatersolutions/bywater-koha/releases',
+    'https://api.github.com/repos/bywatersolutions/bywater-koha-future/releases',
+);
 
-my $response = $ua->get($url)->decoded_content;
+foreach my $url (@urls) {
+    my $response = $ua->get($url)->decoded_content;
 
-my $data = from_json($response);
-foreach my $d (@$data) {
-    next unless $d->{created_at} =~ /^$date/;
+    my $data = from_json($response);
+    foreach my $d (@$data) {
+        next unless $d->{created_at} =~ /^$date/;
 
-    my $tag_name = $d->{tag_name};
-    say "$tag_name:" if $opt->verbose;
-    my ( $shortname, $version, $mark ) = split( /-/, $tag_name );
-    say "  Shortnamme: $shortname" if $opt->verbose > 1;
-    say "  Version: $version"      if $opt->verbose > 1;
-    say "  Mark: $mark"            if $opt->verbose > 1;
+        my $tag_name = $d->{tag_name};
+        say "$tag_name:" if $opt->verbose;
+        my ( $shortname, $version, $mark ) = split( /-/, $tag_name );
+        say "  Shortnamme: $shortname" if $opt->verbose > 1;
+        say "  Version: $version"      if $opt->verbose > 1;
+        say "  Mark: $mark"            if $opt->verbose > 1;
 
-    my ( $major, $minor, $patch ) = split( /\./, $version );
-    $major =~ s/^.//;    # Remove leading 'v'
-    say "    Major Version: $major" if $opt->verbose > 2;
-    say "    Minor Version: $minor" if $opt->verbose > 2;
-    say "    Patch Version: $patch" if $opt->verbose > 2;
+        my ( $major, $minor, $patch ) = split( /\./, $version );
+        $major =~ s/^.//;    # Remove leading 'v'
+        say "    Major Version: $major" if $opt->verbose > 2;
+        say "    Minor Version: $minor" if $opt->verbose > 2;
+        say "    Patch Version: $patch" if $opt->verbose > 2;
 
-    my $asset                = $d->{assets}->[0];
-    my $name                 = $asset->{name};
-    my $browser_download_url = $asset->{browser_download_url};
+        my $asset                = $d->{assets}->[0];
+        my $name                 = $asset->{name};
+        my $browser_download_url = $asset->{browser_download_url};
 
-    say "  Tag: $tag_name"                   if $opt->verbose;
-    say "  Asset Name: $name"                if $opt->verbose;
-    say "  Asset URL: $browser_download_url" if $opt->verbose;
+        say "  Tag: $tag_name"                   if $opt->verbose;
+        say "  Asset Name: $name"                if $opt->verbose;
+        say "  Asset URL: $browser_download_url" if $opt->verbose;
 
-    my $file_path = $opt->path . '/' . $name;
+        my $file_path = $opt->path . '/' . $name;
 
-    say "Downloading $name..." if $opt->verbose;
-    $response = $ua->get($browser_download_url);
-    say "Finished downloading $name" if $opt->verbose;
+        say "Downloading $name..." if $opt->verbose;
+        $response = $ua->get($browser_download_url);
+        say "Finished downloading $name" if $opt->verbose;
 
-    open my $fh, '>', $file_path or die "Failed opening $file_path";
-    print $fh $response->content;
-    close $fh;
+        open my $fh, '>', $file_path or die "Failed opening $file_path";
+        print $fh $response->content;
+        close $fh;
 
-    my $ae       = Archive::Extract->new( archive => $file_path );
-    my $data_dir = $file_path . ".data";
-    my $ok       = $ae->extract( to => $data_dir ) or die $ae->error;
+        my $ae       = Archive::Extract->new( archive => $file_path );
+        my $data_dir = $file_path . ".data";
+        my $ok       = $ae->extract( to => $data_dir ) or die $ae->error;
 
-    if ($ok) {    # Import the file into aptly
-        my $major_minor = "$major.$minor";
-        my $is_new = create_repo( $major_minor, $shortname, $opt->verbose );
-        my $deb_file = "$data_dir/koha-common_$major.$minor.$patch~$shortname~$mark-1_all.deb";
-        add_or_update_package( $is_new, $major_minor, $shortname, $deb_file, $opt->verbose );
+        if ($ok) {    # Import the file into aptly
+            my $major_minor = "$major.$minor";
+            my $is_new = create_repo( $major_minor, $shortname, $opt->verbose );
+            my $deb_file = "$data_dir/koha-common_$major.$minor.$patch~$shortname~$mark-1_all.deb";
+            add_or_update_package( $is_new, $major_minor, $shortname, $deb_file, $opt->verbose );
+        }
+
+        say "Deleting $name" if $opt->verbose;
+        unlink $file_path;
+        rmtree( $data_dir, $opt->verbose );
+        say q{};
     }
-
-    say "Deleting $name" if $opt->verbose;
-    unlink $file_path;
-    rmtree( $data_dir, $opt->verbose );
-    say q{};
 }
 
 =head2 add_or_update_package
@@ -104,7 +112,9 @@ sub add_or_update_package {
     @output = qx( aptly repo remove $version-$shortname koha-common )
       unless $is_new;
     if ( $verbose > 3 && @output ) {
-        say for ( "Removing koha-common from repo $version-$shortname: ", @output );
+        say
+          for ( "Removing koha-common from repo $version-$shortname: ",
+            @output );
     }
     @output = qx( aptly repo add $version-$shortname $deb_file );
     if ( $verbose > 3 ) {
