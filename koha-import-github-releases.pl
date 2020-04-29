@@ -39,7 +39,7 @@ foreach my $url (@urls) {
 
     my $data = from_json($response);
     foreach my $d (@$data) {
-        next unless $d->{created_at} =~ /^$date/;
+        next unless $d->{published_at} =~ /^$date/;
 
         my $tag_name = $d->{tag_name};
         say "$tag_name:" if $opt->verbose;
