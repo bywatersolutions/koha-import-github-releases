@@ -18,6 +18,7 @@ my ( $opt, $usage ) = describe_options(
         'date|d=s',
 "The date ( in ISO format ) to limit downloading releases to. Defaults to current date."
     ],
+    [ 'match-version|mv=s', "Match this version" ],
     [],
     [ 'verbose|v+', "print extra stuff" ],
     [ 'help|h', "print usage message and exit", { shortcircuit => 1 } ],
@@ -44,6 +45,16 @@ foreach my $url (@urls) {
         my $tag_name = $d->{tag_name};
         say "$tag_name:" if $opt->verbose;
         my ( $shortname, $version, $mark ) = split( /-/, $tag_name );
+
+	if ( $opt->match_version ) {
+	    if ( "$version-$mark" eq $opt->match_version ) {
+                say "MATCH FOUND for " . $opt->match_version if $opt->verbose > 1;
+	    } else {
+                say "$version-$mark does not match " . $opt->match_version . ": SKIPPING";
+                next;
+            }
+	}
+
         say "  Shortnamme: $shortname" if $opt->verbose > 1;
         say "  Version: $version"      if $opt->verbose > 1;
         say "  Mark: $mark"            if $opt->verbose > 1;
