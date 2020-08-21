@@ -14,15 +14,14 @@ use LWP::UserAgent;
 my ( $opt, $usage ) = describe_options(
     'koha-import-github-releases %o ',
     [ 'path|p=s', "The path to download assets to", { required => 1 } ],
-    [
-        'date|d=s',
-"The date ( in ISO format ) to limit downloading releases to. Defaults to current date."
-    ],
-    [ 'match-version|mv=s', "Match this version" ],
+    [ 'date|d=s', "The date ( in ISO format ) to limit downloading releases to. Defaults to current date." ],
+    [ 'match-version|mv=s', "Match this version, e.g. v19.11.08-05" ],
     [],
     [ 'verbose|v+', "print extra stuff" ],
     [ 'help|h', "print usage message and exit", { shortcircuit => 1 } ],
 );
+
+print($usage->text), exit if $opt->help;
 
 my $ua = LWP::UserAgent->new;
 $ua->show_progress( $opt->verbose ? 1 : 0 );
