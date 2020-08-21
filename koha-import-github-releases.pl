@@ -27,7 +27,7 @@ my $ua = LWP::UserAgent->new;
 $ua->show_progress( $opt->verbose ? 1 : 0 );
 
 my $date = $opt->date;
-say "Using Date: $date\n" if $opt->verbose;
+say "Using Date: $date\n" if $date && $opt->verbose;
 
 my @urls = (
     'https://api.github.com/repos/bywatersolutions/bywater-koha/releases',
@@ -39,7 +39,9 @@ foreach my $url (@urls) {
 
     my $data = from_json($response);
     foreach my $d (@$data) {
-        next unless $date && $d->{published_at} =~ /^$date/;
+	if ( $date ) {
+            next unless $d->{published_at} =~ /^$date/;
+	}
 
         my $tag_name = $d->{tag_name};
         say "$tag_name:" if $opt->verbose;
