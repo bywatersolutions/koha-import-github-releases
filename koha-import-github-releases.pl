@@ -27,7 +27,7 @@ my ( $opt, $usage ) = describe_options(
 my $ua = LWP::UserAgent->new;
 $ua->show_progress( $opt->verbose ? 1 : 0 );
 
-my $date = $opt->date || DateTime->now->ymd;
+my $date = $opt->date;
 say "Using Date: $date\n" if $opt->verbose;
 
 my @urls = (
@@ -40,7 +40,7 @@ foreach my $url (@urls) {
 
     my $data = from_json($response);
     foreach my $d (@$data) {
-        next unless $d->{published_at} =~ /^$date/;
+        next unless $date && $d->{published_at} =~ /^$date/;
 
         my $tag_name = $d->{tag_name};
         say "$tag_name:" if $opt->verbose;
