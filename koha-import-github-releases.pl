@@ -179,7 +179,7 @@ sub create_repo {
 
     $repo ||= "$version-$shortname";
 
-    my @output = qx( aptly repo list | grep "\[$repo\]" );
+    my @output = qx( aptly repo list | grep "\\[$repo\\]" );
 
     if (@output) {
         return 0;    # Repo exists
