@@ -17,6 +17,7 @@ my ( $opt, $usage ) = describe_options(
     [ 'date|d=s', "The date ( in ISO format ) to limit downloading releases to. Defaults to current date." ],
     [ 'match-version|mv=s', "Match this version, e.g. v19.11.08-05" ],
     [ 'match-tagname|mt=s', "Match this tag name, e.g. clic-v19.11.08-05" ],
+    [ 'repo|r=s', "Specify the repo to be created and used, best used with --match-version or --match-tagname" ],
     [],
     [ 'verbose|v+', "print extra stuff" ],
     [ 'help|h', "print usage message and exit", { shortcircuit => 1 } ],
@@ -29,6 +30,8 @@ $ua->show_progress( $opt->verbose ? 1 : 0 );
 
 my $date = $opt->date;
 say "Using Date: $date\n" if $date && $opt->verbose;
+
+my $repo = $opt->repo;
 
 my @urls = (
     'https://api.github.com/repos/bywatersolutions/bywater-koha/releases',
@@ -99,9 +102,9 @@ foreach my $url (@urls) {
 
         if ($ok) {    # Import the file into aptly
             my $major_minor = "$major.$minor";
-            my $is_new = create_repo( $major_minor, $shortname, $opt->verbose );
+            my $is_new = create_repo( $major_minor, $shortname, $repo, $opt->verbose );
             my $deb_file = "$data_dir/koha-common_$major.$minor.$patch~$shortname~$mark-1_all.deb";
-            add_or_update_package( $is_new, $major_minor, $shortname, $deb_file, $opt->verbose );
+            add_or_update_package( $is_new, $major_minor, $shortname, $deb_file, $repo, $opt->verbose );
         }
 
         say "Deleting $name" if $opt->verbose;
@@ -126,31 +129,33 @@ Returns true of the repo was created, false if the repo already exists.
 =cut
 
 sub add_or_update_package {
-    my ( $is_new, $version, $shortname, $deb_file, $verbose ) = @_;
+    my ( $is_new, $version, $shortname, $deb_file, $repo, $verbose ) = @_;
+
+    $repo ||= "$version-$shortname";
 
     my @output;
 
-    @output = qx( aptly repo remove $version-$shortname koha-common )
+    @output = qx( aptly repo remove $repo koha-common )
       unless $is_new;
     if ( $verbose > 3 && @output ) {
         say
-          for ( "Removing koha-common from repo $version-$shortname: ",
+          for ( "Removing koha-common from repo $repo: ",
             @output );
     }
-    @output = qx( aptly repo add $version-$shortname $deb_file );
+    @output = qx( aptly repo add $repo $deb_file );
     if ( $verbose > 3 ) {
-        say for ( "Adding file $deb_file to $version-$shortname: ", @output );
+        say for ( "Adding file $deb_file to $repo: ", @output );
     }
 
-    @output = qx( aptly publish repo -distribution=$version-$shortname -component=main $version-$shortname )
+    @output = qx( aptly publish repo -distribution=$repo -component=main $repo )
       if $is_new;
 
     if ( $verbose > 3 && $is_new ) {
-        say for ( "Publishing $version-$shortname: ", @output );
+        say for ( "Publishing $repo: ", @output );
     }
-    @output = qx( aptly publish update $version-$shortname );
+    @output = qx( aptly publish update $repo );
     if ( $verbose > 3 ) {
-        say for ( "Updating $version-$shortname: ", @output );
+        say for ( "Updating $repo: ", @output );
     }
 }
 
@@ -163,24 +168,26 @@ The component will be main
 
 my $version = 'v19.05';
 my $shortname = 'bywater'; # or 'clic', 'masscat', etc
-my $created = create_repo( $version, $shortname );
+my $created = create_repo( $version, $shortname, $repo, $verbose );
 
 Returns true of the repo was created, false if the repo already exists.
 
 =cut
 
 sub create_repo {
-    my ( $version, $shortname, $verbose ) = @_;
+    my ( $version, $shortname, $repo, $verbose ) = @_;
 
-    my @output = qx( aptly repo list | grep $version-$shortname );
+    $repo ||= "$version-$shortname";
+
+    my @output = qx( aptly repo list | grep "\[$repo\]" );
 
     if (@output) {
         return 0;    # Repo exists
     }
     else {
-        @output = qx( aptly repo create -distribution=$version-$shortname -component=main $version-$shortname );
+        @output = qx( aptly repo create -distribution=$repo -component=main $repo );
         if ( $verbose > 3 ) {
-            say for ( "Creating new repo $version-$shortname: ", @output );
+            say for ( "Creating new repo $repo: ", @output );
         }
         return 1;    # Repo was newly created
     }
