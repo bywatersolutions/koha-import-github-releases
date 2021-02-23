@@ -16,6 +16,7 @@ my ( $opt, $usage ) = describe_options(
     [ 'path|p=s', "The path to download assets to", { required => 1 } ],
     [ 'date|d=s', "The date ( in ISO format ) to limit downloading releases to. Defaults to current date." ],
     [ 'match-version|mv=s', "Match this version, e.g. v19.11.08-05" ],
+    [ 'match-tagname|mt=s', "Match this tag name, e.g. clic-v19.11.08-05" ],
     [],
     [ 'verbose|v+', "print extra stuff" ],
     [ 'help|h', "print usage message and exit", { shortcircuit => 1 } ],
@@ -49,9 +50,17 @@ foreach my $url (@urls) {
 
 	if ( $opt->match_version ) {
 	    if ( "$version-$mark" eq $opt->match_version ) {
-                say "MATCH FOUND for " . $opt->match_version if $opt->verbose > 1;
+                say "VERSION MATCH FOUND for " . $opt->match_version if $opt->verbose > 1;
 	    } else {
                 say "$version-$mark does not match " . $opt->match_version . ": SKIPPING";
+                next;
+            }
+	}
+	if ( $opt->match_tagname ) {
+	    if ( $tag_name eq $opt->match_tagname ) {
+                say "TAG MATCH FOUND for " . $opt->match_tagname if $opt->verbose > 1;
+	    } else {
+                say "$tag_name does not match " . $opt->match_tagname . ": SKIPPING";
                 next;
             }
 	}
