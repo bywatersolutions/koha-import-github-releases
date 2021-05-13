@@ -78,7 +78,12 @@ foreach my $url (@urls) {
         say "    Minor Version: $minor" if $opt->verbose > 2;
         say "    Patch Version: $patch" if $opt->verbose > 2;
 
-        my $asset                = $d->{assets}->[0];
+        #TODO: The koha-common deb is now attached as a separate asset
+        #if we downloaded and used that we wouldn't have to unzip a big archive
+        my $asset;
+        $asset = $d->{assets}->[0] if $d->{assets}->[0]->{name} =~ /^.*zip/;
+        $asset = $d->{assets}->[1] if $d->{assets}->[1]->{name} =~ /^.*zip/;
+
         my $name                 = $asset->{name};
         my $browser_download_url = $asset->{browser_download_url};
 
