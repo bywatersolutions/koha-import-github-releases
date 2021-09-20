@@ -152,7 +152,7 @@ sub add_or_update_package {
         say for ( "Adding file $deb_file to $repo: ", @output );
     }
 
-    @output = qx( aptly repo -distribution=$repo -component=main $repo )
+    @output = qx( aptly -architectures=amd64 publish repo -distribution=$repo -component=main $repo )
       if $is_new;
 
     if ( $verbose > 3 && $is_new ) {
@@ -190,7 +190,7 @@ sub create_repo {
         return 0;    # Repo exists
     }
     else {
-        @output = qx( aptly repo create -distribution=$repo -component=main $repo );
+        @output = qx( aptly -architectures=amd64 repo create -distribution=$repo -component=main $repo );
         if ( $verbose > 3 ) {
             say for ( "Creating new repo $repo: ", @output );
         }
