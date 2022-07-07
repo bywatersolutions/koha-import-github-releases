@@ -23,7 +23,7 @@ my ( $opt, $usage ) = describe_options(
     [ 'help|h', "print usage message and exit", { shortcircuit => 1 } ],
 );
 
-print($usage->text), exit if $opt->help;
+print( $usage->text ), exit if $opt->help;
 
 my $ua = LWP::UserAgent->new;
 $ua->show_progress( $opt->verbose ? 1 : 0 );
@@ -43,31 +43,39 @@ foreach my $url (@urls) {
 
     my $data = from_json($response);
     foreach my $d (@$data) {
-	if ( $date ) {
+        if ($date) {
             next unless $d->{published_at} =~ /^$date/;
-	}
+        }
 
         my $tag_name = $d->{tag_name};
         say "$tag_name:" if $opt->verbose;
         my ( $shortname, $version_mark ) = split( /_/, $tag_name );
-        my ( $version, $mark ) = split( /-/, $version_mark );
+        my ( $version,   $mark )         = split( /-/, $version_mark );
 
-	if ( $opt->match_version ) {
-	    if ( "$version-$mark" eq $opt->match_version ) {
-                say "VERSION MATCH FOUND for " . $opt->match_version if $opt->verbose > 1;
-	    } else {
-                say "$version-$mark does not match " . $opt->match_version . ": SKIPPING";
+        if ( $opt->match_version ) {
+            if ( "$version-$mark" eq $opt->match_version ) {
+                say "VERSION MATCH FOUND for " . $opt->match_version
+                  if $opt->verbose > 1;
+            }
+            else {
+                say "$version-$mark does not match "
+                  . $opt->match_version
+                  . ": SKIPPING";
                 next;
             }
-	}
-	if ( $opt->match_tagname ) {
-	    if ( $tag_name eq $opt->match_tagname ) {
-                say "TAG MATCH FOUND for " . $opt->match_tagname if $opt->verbose > 1;
-	    } else {
-                say "$tag_name does not match " . $opt->match_tagname . ": SKIPPING";
+        }
+        if ( $opt->match_tagname ) {
+            if ( $tag_name eq $opt->match_tagname ) {
+                say "TAG MATCH FOUND for " . $opt->match_tagname
+                  if $opt->verbose > 1;
+            }
+            else {
+                say "$tag_name does not match "
+                  . $opt->match_tagname
+                  . ": SKIPPING";
                 next;
             }
-	}
+        }
 
         say "  Shortnamme: $shortname" if $opt->verbose > 1;
         say "  Version: $version"      if $opt->verbose > 1;
@@ -108,9 +116,13 @@ foreach my $url (@urls) {
 
         if ($ok) {    # Import the file into aptly
             my $major_minor = "$major.$minor";
-            my $is_new = create_repo( $major_minor, $shortname, $repo, $opt->verbose );
+            my $is_new =
+              create_repo( $major_minor, $shortname, $repo, $opt->verbose );
             my $deb_file = "$data_dir/koha-common_$major.$minor.$patch~$shortname~$mark-1_all.deb";
-            add_or_update_package( $is_new, $major_minor, $shortname, $deb_file, $repo, $opt->verbose );
+            add_or_update_package(
+                $is_new,   $major_minor, $shortname,
+                $deb_file, $repo,        $opt->verbose
+            );
         }
 
         say "Deleting $name" if $opt->verbose;
@@ -144,9 +156,7 @@ sub add_or_update_package {
     @output = qx( aptly repo remove $repo koha-common )
       unless $is_new;
     if ( $verbose > 3 && @output ) {
-        say
-          for ( "Removing koha-common from repo $repo: ",
-            @output );
+        say for ( "Removing koha-common from repo $repo: ", @output );
     }
     @output = qx( aptly repo add $repo $deb_file );
     if ( $verbose > 3 ) {
