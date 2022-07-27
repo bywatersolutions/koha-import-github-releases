@@ -14,10 +14,16 @@ use LWP::UserAgent;
 my ( $opt, $usage ) = describe_options(
     'koha-import-github-releases %o ',
     [ 'path|p=s', "The path to download assets to", { required => 1 } ],
-    [ 'date|d=s', "The date ( in ISO format ) to limit downloading releases to. Defaults to current date." ],
+    [
+        'date|d=s',
+"The date ( in ISO format ) to limit downloading releases to. Defaults to current date."
+    ],
     [ 'match-version|mv=s', "Match this version, e.g. v19.11.08-05" ],
     [ 'match-tagname|mt=s', "Match this tag name, e.g. clic-v19.11.08-05" ],
-    [ 'repo|r=s', "Specify the repo to be created and used, best used with --match-version or --match-tagname" ],
+    [
+        'repo|r=s',
+"Specify the repo to be created and used, best used with --match-version or --match-tagname"
+    ],
     [],
     [ 'verbose|v+', "print extra stuff" ],
     [ 'help|h', "print usage message and exit", { shortcircuit => 1 } ],
@@ -35,7 +41,7 @@ my $repo = $opt->repo;
 
 my @urls = (
     'https://api.github.com/repos/bywatersolutions/bywater-koha/releases',
-    'https://api.github.com/repos/bywatersolutions/bywater-koha-future/releases',
+'https://api.github.com/repos/bywatersolutions/bywater-koha-future/releases',
 );
 
 foreach my $url (@urls) {
@@ -48,9 +54,16 @@ foreach my $url (@urls) {
         }
 
         my $tag_name = $d->{tag_name};
-        say "$tag_name:" if $opt->verbose;
+        say "TAG NAME: $tag_name:" if $opt->verbose;
+        my ( $version, $mark );
         my ( $shortname, $version_mark ) = split( /_/, $tag_name );
-        my ( $version,   $mark )         = split( /-/, $version_mark );
+        if ($version_mark) {
+            ( $version, $mark ) = split( /-/, $version_mark );
+        }
+        else {
+            # Fall back, old tag using a dash instead of an underscore
+            ( $shortname, $version_mark ) = split( /-/, $tag_name );
+        }
 
         if ( $opt->match_version ) {
             if ( "$version-$mark" eq $opt->match_version ) {
@@ -118,7 +131,8 @@ foreach my $url (@urls) {
             my $major_minor = "$major.$minor";
             my $is_new =
               create_repo( $major_minor, $shortname, $repo, $opt->verbose );
-            my $deb_file = "$data_dir/koha-common_$major.$minor.$patch~$shortname~$mark-1_all.deb";
+            my $deb_file =
+"$data_dir/koha-common_$major.$minor.$patch~$shortname~$mark-1_all.deb";
             add_or_update_package(
                 $is_new,   $major_minor, $shortname,
                 $deb_file, $repo,        $opt->verbose
@@ -163,7 +177,8 @@ sub add_or_update_package {
         say for ( "Adding file $deb_file to $repo: ", @output );
     }
 
-    @output = qx( aptly -architectures=amd64 publish repo -distribution=$repo -component=main $repo )
+    @output =
+qx( aptly -architectures=amd64 publish repo -distribution=$repo -component=main $repo )
       if $is_new;
 
     if ( $verbose > 3 && $is_new ) {
@@ -201,7 +216,8 @@ sub create_repo {
         return 0;    # Repo exists
     }
     else {
-        @output = qx( aptly -architectures=amd64 repo create -distribution=$repo -component=main $repo );
+        @output =
+qx( aptly -architectures=amd64 repo create -distribution=$repo -component=main $repo );
         if ( $verbose > 3 ) {
             say for ( "Creating new repo $repo: ", @output );
         }
