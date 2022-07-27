@@ -49,8 +49,7 @@ foreach my $url (@urls) {
 
         my $tag_name = $d->{tag_name};
         say "$tag_name:" if $opt->verbose;
-        my ( $shortname, $version_mark ) = split( /_/, $tag_name );
-        my ( $version,   $mark )         = split( /-/, $version_mark );
+        my ( $shortname, $version, $mark ) = split( /-/, $tag_name );
 
         if ( $opt->match_version ) {
             if ( "$version-$mark" eq $opt->match_version ) {
