@@ -5,12 +5,16 @@ use Mojolicious::Lite -signatures;
 use Mojo::Log;
 
 use Capture::Tiny qw(capture);
+use Slack::WebHook;
 
 get '/' => sub ($c) {
     my $tag = $c->param('tag');
     my $t   = $c->param('t');
 
-    my $token = $ENV{TOKEN};
+    my $token   = $ENV{TOKEN};
+    my $webhook = $ENV{WEBHOOK};
+
+    my $hook = $webhook ? Slack::WebHook->new( url => $webhook ) : undef;
 
     my $log = Mojo::Log->new(
         path  => '/tmp/koha-import-github-releases-webhook.log',
@@ -20,13 +24,28 @@ get '/' => sub ($c) {
     $log->info("INCOMING - TAG:$tag / TOKEN:$t");
 
     if ( $token eq $t ) {
+        $hook->post_ok("APTLY - Received tag $tag") if $hook;
         if ( $tag =~ /\w*_v\d\d\.\d\d\.\d\d\-\d\d/ ) {
-            my ($stdout, $stderr, $exit) = capture {
-                system("./koha-import-github-releases.pl -p /tmp/ -v --mt $tag");
+            $hook->post_start("APTLY - Importing tag $tag") if $hook;
+            my ( $stdout, $stderr, $failed ) = capture {
+                system(
+                    "./koha-import-github-releases.pl -p /tmp/ -v --mt $tag");
             };
-            $c->render( text => $stderr || $stdout, status => $stderr ? 400 : 200 );
+            $hook->post_end("APTLY - Finished importing tag $tag") if $hook && !$failed;
+
+            $hook->post_error("APTLY - Failed importing tag $tag: $stderr")
+              if $hook && $failed;;
+
+            $log->info($stdout)  if $stdout;
+            $log->error($stderr) if $stderr;
+
+            $c->render(
+                text => $failed ? $stderr : $stdout,
+                status => $failed ? 400 : 200,
+            );
         }
         else {
+            $hook->post_error("APTLY - Invalid tag $tag") if $hook;
             $log->info("ERROR - INVALID TAG:$tag");
             $c->render( text => "Invalid Tag: $tag", status => 400 );
         }
