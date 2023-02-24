@@ -65,6 +65,8 @@ foreach my $url (@urls) {
             ( $shortname, $version_mark ) = split( /-/, $tag_name );
         }
 
+	next unless $version;
+
         if ( $opt->match_version ) {
             if ( "$version-$mark" eq $opt->match_version ) {
                 say "VERSION MATCH FOUND for " . $opt->match_version
@@ -184,7 +186,7 @@ qx( aptly -architectures=amd64 publish repo -distribution=$repo -component=main 
     if ( $verbose > 3 && $is_new ) {
         say for ( "Publishing $repo: ", @output );
     }
-    @output = qx( aptly publish update $repo );
+    @output = qx( aptly publish update -batch=true -passphrase-file=/home/koha/.pphrase $repo );
     if ( $verbose > 3 ) {
         say for ( "Updating $repo: ", @output );
     }
