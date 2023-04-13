@@ -180,7 +180,7 @@ sub add_or_update_package {
     }
 
     @output =
-qx( aptly -architectures=amd64 publish repo -distribution=$repo -component=main $repo )
+qx( aptly -architectures=amd64 publish repo -passphrase-file=/home/koha/.pphrase -batch=true -distribution=$repo -component=main $repo )
       if $is_new;
 
     if ( $verbose > 3 && $is_new ) {
