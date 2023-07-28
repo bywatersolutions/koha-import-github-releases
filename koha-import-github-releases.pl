@@ -40,8 +40,9 @@ say "Using Date: $date\n" if $date && $opt->verbose;
 my $repo = $opt->repo;
 
 my @urls = (
-    'https://api.github.com/repos/bywatersolutions/bywater-koha/releases',
+'https://api.github.com/repos/bywatersolutions/bywater-koha/releases',
 'https://api.github.com/repos/bywatersolutions/bywater-koha-future/releases',
+'https://api.github.com/repos/bywatersolutions/bywater-koha-security/releases',
 );
 
 foreach my $url (@urls) {
