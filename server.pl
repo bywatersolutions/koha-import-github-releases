@@ -13,6 +13,7 @@ get '/' => sub ($c) {
 
     my $token   = $ENV{TOKEN};
     my $webhook = $ENV{WEBHOOK};
+    my $github_token = $ENV{GITHUB_TOKEN};
 
     my $hook = $webhook ? Slack::WebHook->new( url => $webhook ) : undef;
 
@@ -29,7 +30,7 @@ get '/' => sub ($c) {
             $hook->post_start("APTLY - Importing tag $tag") if $hook;
             my ( $stdout, $stderr, $failed ) = capture {
                 system(
-                    "./koha-import-github-releases.pl -p /tmp/ -v --mt $tag");
+                    "./koha-import-github-releases.pl -p /tmp/ -v -t $github_token --mt $tag");
             };
             $hook->post_end("APTLY - Finished importing tag $tag") if $hook && !$failed;
 

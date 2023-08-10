@@ -25,11 +25,18 @@ my ( $opt, $usage ) = describe_options(
 "Specify the repo to be created and used, best used with --match-version or --match-tagname"
     ],
     [],
+    [
+        'token|t=s',
+"GitHub token to access private repos",
+    ],
+    [],
     [ 'verbose|v+', "print extra stuff" ],
     [ 'help|h', "print usage message and exit", { shortcircuit => 1 } ],
 );
 
 print( $usage->text ), exit if $opt->help;
+
+my $token = $opt->token;
 
 my $ua = LWP::UserAgent->new;
 $ua->show_progress( $opt->verbose ? 1 : 0 );
@@ -46,7 +53,8 @@ my @urls = (
 );
 
 foreach my $url (@urls) {
-    my $response = $ua->get($url)->decoded_content;
+    warn "URL: $url";
+    my $response = $ua->get($url, "Authorization" => "Bearer $token" )->decoded_content;
 
     my $data = from_json($response);
     foreach my $d (@$data) {
@@ -119,7 +127,7 @@ foreach my $url (@urls) {
         my $file_path = $opt->path . '/' . $name;
 
         say "Downloading $name..." if $opt->verbose;
-        $response = $ua->get($browser_download_url);
+        $response = $ua->get($browser_download_url, "Authorization" => "Bearer $token");
         say "Finished downloading $name" if $opt->verbose;
 
         open my $fh, '>', $file_path or die "Failed opening $file_path";
