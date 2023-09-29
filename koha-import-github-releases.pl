@@ -25,10 +25,7 @@ my ( $opt, $usage ) = describe_options(
 "Specify the repo to be created and used, best used with --match-version or --match-tagname"
     ],
     [],
-    [
-        'token|t=s',
-"GitHub token to access private repos",
-    ],
+    [ 'token|t=s', "GitHub token to access private repos", ],
     [],
     [ 'verbose|v+', "print extra stuff" ],
     [ 'help|h', "print usage message and exit", { shortcircuit => 1 } ],
@@ -47,14 +44,15 @@ say "Using Date: $date\n" if $date && $opt->verbose;
 my $repo = $opt->repo;
 
 my @urls = (
-'https://api.github.com/repos/bywatersolutions/bywater-koha/releases',
+    'https://api.github.com/repos/bywatersolutions/bywater-koha/releases',
 'https://api.github.com/repos/bywatersolutions/bywater-koha-future/releases',
 'https://api.github.com/repos/bywatersolutions/bywater-koha-security/releases',
 );
 
 foreach my $url (@urls) {
     warn "URL: $url";
-    my $response = $ua->get($url, "Authorization" => "Bearer $token" )->decoded_content;
+    my $response =
+      $ua->get( $url, "Authorization" => "Bearer $token" )->decoded_content;
 
     my $data = from_json($response);
     foreach my $d (@$data) {
@@ -74,7 +72,7 @@ foreach my $url (@urls) {
             ( $shortname, $version_mark ) = split( /-/, $tag_name );
         }
 
-	next unless $version;
+        next unless $version;
 
         if ( $opt->match_version ) {
             if ( "$version-$mark" eq $opt->match_version ) {
@@ -119,6 +117,7 @@ foreach my $url (@urls) {
 
         my $name                 = $asset->{name};
         my $browser_download_url = $asset->{browser_download_url};
+        my $asset_id             = $asset->{id};
 
         say "  Tag: $tag_name"                   if $opt->verbose;
         say "  Asset Name: $name"                if $opt->verbose;
@@ -127,12 +126,16 @@ foreach my $url (@urls) {
         my $file_path = $opt->path . '/' . $name;
 
         say "Downloading $name..." if $opt->verbose;
-        $response = $ua->get($browser_download_url, "Authorization" => "Bearer $token");
-        say "Finished downloading $name" if $opt->verbose;
+        my $cmd =
+            qq{curl -L -H "Accept: application/octet-stream" }
+          . qq{-H "Authorization: Bearer $token" }
+          . qq{-H "X-GitHub-Api-Version: 2022-11-28" }
+          . qq{https://api.github.com/repos/bywatersolutions/bywater-koha-security/releases/assets/$asset_id }
+          . qq{-o $file_path };
+        say "CMD: $cmd";
+        qx{$cmd};
 
-        open my $fh, '>', $file_path or die "Failed opening $file_path";
-        print $fh $response->content;
-        close $fh;
+        say "Finished downloading $name" if $opt->verbose;
 
         my $ae       = Archive::Extract->new( archive => $file_path );
         my $data_dir = $file_path . ".data";
@@ -143,7 +146,8 @@ foreach my $url (@urls) {
             my $is_new =
               create_repo( $major_minor, $shortname, $repo, $opt->verbose );
             my $deb_file =
-"$data_dir/koha-common_$major.$minor.$patch~$shortname~$mark-1_all.deb";
+              $data_dir
+              . "/koha-common_$major.$minor.$patch~$shortname~$mark-1_all.deb";
             add_or_update_package(
                 $is_new,   $major_minor, $shortname,
                 $deb_file, $repo,        $opt->verbose
@@ -195,7 +199,8 @@ qx( aptly -architectures=amd64 publish repo -passphrase-file=/home/koha/.pphrase
     if ( $verbose > 3 && $is_new ) {
         say for ( "Publishing $repo: ", @output );
     }
-    @output = qx( aptly publish update -batch=true -passphrase-file=/home/koha/.pphrase $repo );
+    @output =
+qx( aptly publish update -batch=true -passphrase-file=/home/koha/.pphrase $repo );
     if ( $verbose > 3 ) {
         say for ( "Updating $repo: ", @output );
     }
