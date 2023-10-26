@@ -43,13 +43,15 @@ say "Using Date: $date\n" if $date && $opt->verbose;
 
 my $repo = $opt->repo;
 
-my @urls = (
-    'https://api.github.com/repos/bywatersolutions/bywater-koha/releases',
-'https://api.github.com/repos/bywatersolutions/bywater-koha-future/releases',
-'https://api.github.com/repos/bywatersolutions/bywater-koha-security/releases',
+my @repos = (
+  'bywater-koha',
+  'bywater-koha-future',
+  'bywater-koha-security',
 );
 
-foreach my $url (@urls) {
+foreach my $r (@repos) {
+    my $url = "https://api.github.com/repos/bywatersolutions/$r/releases";
+
     warn "URL: $url";
     my $response =
       $ua->get( $url, "Authorization" => "Bearer $token" )->decoded_content;
@@ -130,7 +132,7 @@ foreach my $url (@urls) {
             qq{curl -L -H "Accept: application/octet-stream" }
           . qq{-H "Authorization: Bearer $token" }
           . qq{-H "X-GitHub-Api-Version: 2022-11-28" }
-          . qq{https://api.github.com/repos/bywatersolutions/bywater-koha-security/releases/assets/$asset_id }
+          . qq{https://api.github.com/repos/bywatersolutions/$r/releases/assets/$asset_id }
           . qq{-o $file_path };
         say "CMD: $cmd";
         qx{$cmd};
